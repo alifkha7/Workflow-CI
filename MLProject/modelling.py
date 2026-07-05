@@ -20,8 +20,8 @@ def main():
     args = parser.parse_args()
 
     # Load dataset from the project directory
-    train_df = pd.read_csv("namadataset_preprocessing/train_preprocessed.csv")
-    test_df = pd.read_csv("namadataset_preprocessing/test_preprocessed.csv")
+    train_df = pd.read_csv("customer_churn_preprocessing/train_preprocessed.csv")
+    test_df = pd.read_csv("customer_churn_preprocessing/test_preprocessed.csv")
 
     X_train = train_df.drop(columns=['Churn'])
     y_train = train_df['Churn']
