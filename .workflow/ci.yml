@@ -34,8 +34,8 @@ jobs:
 
     - name: Run mlflow project
       run: |
-        # Run MLflow Project inside the MLProject folder (using --no-conda to run inside Python 3.12 env)
-        mlflow run MLProject --no-conda
+        # Run MLflow Project inside the MLProject folder (using --env-manager local to run inside Python 3.12 env)
+        mlflow run MLProject --env-manager local
 
     - name: Get latest MLflow run_id
       id: get-run-id
