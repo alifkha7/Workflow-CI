@@ -1,0 +1,77 @@
+name: Machine Learning CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  ci-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Check Env
+      run: |
+        python --version
+        docker --version
+        echo "Workspace check:"
+        ls -la
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mlflow pandas numpy scikit-learn matplotlib
+
+    - name: Run mlflow project
+      run: |
+        # Run MLflow Project inside the MLProject folder (using --no-conda to run inside Python 3.12 env)
+        mlflow run MLProject --no-conda
+
+    - name: Get latest MLflow run_id
+      id: get-run-id
+      run: |
+        # Search the local mlruns folder for the latest run
+        LATEST_RUN_ID=$(python -c "import mlflow; client = mlflow.tracking.MlflowClient(); runs = client.search_runs(experiment_ids=['0']); print(runs[0].info.run_id if runs else '')")
+        echo "Latest Run ID is $LATEST_RUN_ID"
+        echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
+
+    - name: Install Python dependencies
+      run: |
+        # Extra step for dependency checks
+        pip list
+
+    - name: Upload to GitHub (Replacement for Upload to Google Drive)
+      uses: actions/upload-artifact@v4
+      with:
+        name: trained-mlflow-model
+        path: MLProject/mlruns/0/${{ steps.get-run-id.outputs.run_id }}/artifacts/model/
+
+    - name: Build Docker Model
+      run: |
+        # Build Docker Image using mlflow models build-docker
+        mlflow models build-docker -m MLProject/mlruns/0/${{ steps.get-run-id.outputs.run_id }}/artifacts/model -n alifkha7/churn-predictor:latest
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Tag Docker image
+      run: |
+        # Tag image as latest
+        docker tag alifkha7/churn-predictor:latest alifkha7/churn-predictor:latest
+
+    - name: Push Docker image
+      run: |
+        docker push alifkha7/churn-predictor:latest
