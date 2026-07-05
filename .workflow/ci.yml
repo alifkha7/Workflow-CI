@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Run actions/checkout@v3
+      uses: actions/checkout@v3
 
-    - name: Set up Python 3.12
+    - name: Set up Python 3.12.7
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.12.7'
 
     - name: Check Env
       run: |
@@ -34,29 +34,23 @@ jobs:
 
     - name: Run mlflow project
       run: |
-        # Run MLflow Project inside the MLProject folder (using --env-manager local to run inside Python 3.12 env)
+        # Run MLflow Project inside the MLProject folder (using --env-manager local to run inside Python 3.12.7 env)
         mlflow run MLProject --env-manager local
-
-    - name: Copy mlruns to root
-      run: |
-        # Copy mlruns folder to root so MLflow tracking client can resolve runs:/ URI
-        cp -r MLProject/mlruns ./mlruns
-        ls -la mlruns/0/
 
     - name: Get latest MLflow run_id
       id: get-run-id
       run: |
-        # Search the local mlruns folder for the latest run
+        # Search the local mlruns folder at the root for the latest run
         LATEST_RUN_ID=$(python -c "import mlflow; client = mlflow.tracking.MlflowClient(); runs = client.search_runs(experiment_ids=['0']); print(runs[0].info.run_id if runs else '')")
         echo "Latest Run ID is $LATEST_RUN_ID"
         echo "run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
 
     - name: Install Python dependencies
       run: |
-        # Extra step for dependency checks
+        # Extra step for dependency checks matching Gambar 2
         pip list
 
-    - name: Upload to GitHub (Replacement for Upload to Google Drive)
+    - name: Upload to GitHub
       uses: actions/upload-artifact@v4
       with:
         name: trained-mlflow-model
@@ -73,11 +67,11 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Tag Docker image
+    - name: Tag Docker Image
       run: |
         # Tag image as latest
         docker tag alifkha7/churn-predictor:latest alifkha7/churn-predictor:latest
 
-    - name: Push Docker image
+    - name: Push Docker Image
       run: |
         docker push alifkha7/churn-predictor:latest
